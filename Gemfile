@@ -1,0 +1,8 @@
+source 'https://rubygems.org'
+ruby '2.0.0'
+gem 'sinatra', '>= 0'
+gem 'json', '>=0'
+gem 'typhoeus', '>=0'
+gem 'nokogiri', '>=0'
+gem 'zipruby', '>=0'
+gem 'time_diff', '>=0'

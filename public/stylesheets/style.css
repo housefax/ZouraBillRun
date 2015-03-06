@@ -1,0 +1,107 @@
+/* style.css
+ * This file provides css styles.
+ */
+
+body,html {
+	height: 100%;
+	margin: 0 auto;
+	font-family: "proxima-nova", helvetica, sans-serif;
+	font-style: normal;
+	font-weight: 400;
+	-webkit-font-smoothing: antialiased !important;
+	color: black;
+}
+
+.help-block {
+	margin-top: 0px;
+	margin-bottom: 0px;
+}
+
+a {
+	text-decoration: none;
+	color: #00aed1;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+img {
+	padding-top: 10%;
+	display: block;
+	margin: 0 auto;
+	padding-bottom: 2em;
+	max-width:200px;
+}
+
+h1 {
+	font-weight: bold;
+	font-size: 2em;
+}
+
+.leftHalf {
+	float: left;
+	background-color: #26343f;
+	width: 45%;
+	height: 100%;
+}
+
+.rightHalf {
+	float: right;
+	width: 55%;
+	background-color: #313f4a;
+	height: 100%;
+	overflow:auto;
+}
+
+.description {
+	padding-left: 50px;
+	padding-right: 50px;
+	text-align: center;
+	font-size: 1.2em;
+}
+
+.blue {
+	color: #00aed1;
+}
+
+
+table {
+	table-layout: fixed;
+	width: 900px;
+	margin: 0 auto;
+	word-wrap: break-word;
+	padding-top:10%;
+}
+
+th {
+	border-bottom: 1px solid #000;
+}
+
+th, td {
+	text-align: left;
+	padding: 2px 20px;
+}
+
+.env-var {
+	text-align: right;
+	border-right: 1px solid #000;
+	width: 30%;
+}
+
+pre {
+	padding: 0;
+	margin: 0;
+}
+
+.btn-mi{
+	color: white;
+	background: #d8377f;
+	border-color: #d8377f;
+	font-weight: 700;
+}
+.btn-mi:hover {
+	background: #e0629a;
+	font-weight: 700;
+	color: white;
+}
