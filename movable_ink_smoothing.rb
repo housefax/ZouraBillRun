@@ -7,13 +7,15 @@ require 'nokogiri'
 require 'zipruby'
 require 'date'
 require 'time_diff'
+require 'pony'
 
 
-def get_export_zip(query)
+
+def login()
   #############################
   #### Start of login call ####
   #############################
-  puts '=====> Export start'
+
   request = Nokogiri::XML::Builder.new do |xml|
     xml['SOAP-ENV'].Envelope('xmlns:SOAP-ENV' =>"http://schemas.xmlsoap.org/soap/envelope/", 'xmlns:api' => "http://api.zuora.com/" ) do        
       xml['SOAP-ENV'].Header
@@ -29,11 +31,11 @@ def get_export_zip(query)
   output_xml = Nokogiri::XML(response_query.body )
 
   return 'Login Unsuccessful : ' +  output_xml.xpath('//fns:FaultMessage', 'fns' =>'http://fault.api.zuora.com/').text if output_xml.xpath('//ns1:Session', 'ns1' =>'http://api.zuora.com/').text == ""
-  session = output_xml.xpath('//ns1:Session', 'ns1' =>'http://api.zuora.com/').text
+  return  output_xml.xpath('//ns1:Session', 'ns1' =>'http://api.zuora.com/').text
+end
 
-  ############################
-  ##### End of login call ####
-  ############################    
+def get_export_zip(query)
+  session = login()
 
   request = Nokogiri::XML::Builder.new do |xml|
     xml['SOAP-ENV'].Envelope('xmlns:SOAP-ENV' => "http://schemas.xmlsoap.org/soap/envelope/", 'xmlns:ns2' => "http://object.api.zuora.com/", 'xmlns:xsi' => "http://www.w3.org/2001/XMLSchema-instance", 'xmlns:ns1' => "http://api.zuora.com/") do
@@ -93,27 +95,8 @@ def get_export_zip(query)
   return response_query.body
 end
 
-def update_batch(batch)
-  #############################
-  #### Start of login call ####
-  #############################
-
-  request = Nokogiri::XML::Builder.new do |xml|
-    xml['SOAP-ENV'].Envelope('xmlns:SOAP-ENV' =>"http://schemas.xmlsoap.org/soap/envelope/", 'xmlns:api' => "http://api.zuora.com/" ) do        
-      xml['SOAP-ENV'].Header
-      xml['SOAP-ENV'].Body do
-        xml['api'].login do
-          xml['api'].username @username
-          xml['api'].password @password
-        end
-      end
-    end
-  end
-  response_query = Typhoeus::Request.post(@api_url, :body => request.to_xml, :headers => {'Content-Type' => "text/xml; charset=utf-8"})
-  output_xml = Nokogiri::XML(response_query.body )
-
-  return 'Login Unsuccessful : ' +  output_xml.xpath('//fns:FaultMessage', 'fns' =>'http://fault.api.zuora.com/').text if output_xml.xpath('//ns1:Session', 'ns1' =>'http://api.zuora.com/').text == ""
-  session = output_xml.xpath('//ns1:Session', 'ns1' =>'http://api.zuora.com/').text
+def update_invoice_items(batch)
+  session = login()
 
   request = Nokogiri::XML::Builder.new do |xml|
     xml['SOAP-ENV'].Envelope('xmlns:SOAP-ENV' => "http://schemas.xmlsoap.org/soap/envelope/", 'xmlns:ns2' => "http://object.api.zuora.com/", 'xmlns:xsi' => "http://www.w3.org/2001/XMLSchema-instance", 'xmlns:ns1' => "http://api.zuora.com/") do
@@ -124,11 +107,67 @@ def update_batch(batch)
       end
       xml['SOAP-ENV'].Body do
         xml['ns1'].update do
-          batch.each do |rpc|
-            xml['ns1'].zObjects('xsi:type' => "ns2:RatePlanCharge") do
-              xml['ns2'].Id rpc[@ratePlanChargeKeys.index("RatePlanCharge.Id")]
-              xml['ns2'].TotalUnitsUsed__c rpc.last[0]
-              xml['ns2'].TotalUnitsAvailable__c rpc.last[1]
+          batch.each do |item|
+            xml['ns1'].zObjects('xsi:type' => "ns2:InvoiceItem") do
+              xml['ns2'].Id item['InvoiceItem.Id'] 
+              xml['ns2'].TotalUsedUnits__c item['InvoiceItem.TotalUsedUnits__c'] 
+              xml['ns2'].TotalAvailUnits__c item['InvoiceItem.TotalAvailUnits__c'] 
+            end
+          end
+        end  
+      end
+    end
+  end
+
+  response_query = Typhoeus::Request.post(@api_url, :body => request.to_xml, :headers => {'Content-Type' => "text/xml; charset=utf-8"})
+  output_xml = Nokogiri::XML(response_query.body)
+end
+
+def regenerate_invoices(batch)
+  session = login()
+
+  request = Nokogiri::XML::Builder.new do |xml|
+    xml['SOAP-ENV'].Envelope('xmlns:SOAP-ENV' => "http://schemas.xmlsoap.org/soap/envelope/", 'xmlns:ns2' => "http://object.api.zuora.com/", 'xmlns:xsi' => "http://www.w3.org/2001/XMLSchema-instance", 'xmlns:ns1' => "http://api.zuora.com/") do
+      xml['SOAP-ENV'].Header do
+        xml['ns1'].SessionHeader do
+          xml['ns1'].session session
+        end
+      end
+      xml['SOAP-ENV'].Body do
+        xml['ns1'].update do
+          batch.each do |item|
+            puts item
+            xml['ns1'].zObjects('xsi:type' => "ns2:Invoice") do
+              xml['ns2'].Id item 
+              xml['ns2'].RegenerateInvoicePDF 'true'
+            end
+          end
+        end  
+      end
+    end
+  end
+
+  response_query = Typhoeus::Request.post(@api_url, :body => request.to_xml, :headers => {'Content-Type' => "text/xml; charset=utf-8"})
+  output_xml = Nokogiri::XML(response_query.body)
+end
+
+def post_invoices(batch)
+  session = login()
+
+  request = Nokogiri::XML::Builder.new do |xml|
+    xml['SOAP-ENV'].Envelope('xmlns:SOAP-ENV' => "http://schemas.xmlsoap.org/soap/envelope/", 'xmlns:ns2' => "http://object.api.zuora.com/", 'xmlns:xsi' => "http://www.w3.org/2001/XMLSchema-instance", 'xmlns:ns1' => "http://api.zuora.com/") do
+      xml['SOAP-ENV'].Header do
+        xml['ns1'].SessionHeader do
+          xml['ns1'].session session
+        end
+      end
+      xml['SOAP-ENV'].Body do
+        xml['ns1'].update do
+          batch.each do |item|
+            puts item
+            xml['ns1'].zObjects('xsi:type' => "ns2:Invoice") do
+              xml['ns2'].Id item 
+              xml['ns2'].Status 'Posted'
             end
           end
         end  
@@ -166,25 +205,21 @@ get "/download/:file" do
 end  
     
 
-get "/callout" do 
-  puts params
-    #puts 'testing'
-    #puts request
-    #puts request.inspect
-    #return  request.inspect
-    #return request.env 
-    #@params={"BillRunTargetDate"=>"03/06/2015", "BillRunBillCycleDay"=>"N/A", "BillRunBatchOrAccount"=>"A00000071", "EventCategory"=>"BillingRunCompletion"}
-end  
-
 # Handle POST-request 
 post "/" do 
   puts '=> Start processing'
+  puts params[:BillRunTargetDate]
+  @BillRunTargetDate = params[:BillRunTargetDate].blank? ? nil : params[:BillRunTargetDate]
+
+  #######################################################################################################################################################
+  ############################################################# START of Figuring out rolling window ####################################################
+  #######################################################################################################################################################
 
   #############################################
   #### Subscription Id map to accountNumber ### 
   #############################################
   puts '===> Get data source export of subscription with accounts'
-  subscriptionAccountQuery = "Select Subscription.Id, Account.AccountNumber from Subscription where Subscription.Status = 'Active'"
+  subscriptionAccountQuery = "Select Subscription.Id, Account.AccountNumber from Subscription"
   subscriptionAccountZipbody = get_export_zip(subscriptionAccountQuery)
 
   puts '===> Construct subscription to account map given export data'
@@ -203,7 +238,7 @@ post "/" do
   #### Datasource Get Active rateplancharges with rollover ### 
   ############################################################
   puts '===> Get data source export of rateplancharges with rollover'
-  ratePlanChargeTierQuery = "Select RatePlanChargeTier.IncludedUnits, RatePlanChargeTier.Tier, Subscription.Id, RatePlanCharge.Id, RatePlanCharge.ProcessedThroughDate, RatePlanCharge.BillingPeriod, RatePlanCharge.ChargeModel, RatePlanCharge.ChargeType, RatePlanCharge.EffectiveStartDate, RatePlanCharge.NumberOfPeriods, RatePlanCharge.OverageCalculationOption, RatePlanCharge.UOM, RatePlanCharge.BillCycleDay, ProductRatePlanCharge.SmoothingModel from RatePlanChargeTier where Subscription.Status = 'Active' and RatePlanCharge.ChargeType = 'usage' and ProductRatePlanCharge.SmoothingModel ='RollingWindow' and RatePlanChargeTier.Tier = 1"
+  ratePlanChargeTierQuery = "Select RatePlanChargeTier.IncludedUnits, RatePlanChargeTier.Tier, Subscription.Id, RatePlanCharge.Id, RatePlanCharge.ProcessedThroughDate, RatePlanCharge.BillingPeriod, RatePlanCharge.ChargeModel, RatePlanCharge.ChargeType, RatePlanCharge.EffectiveStartDate, RatePlanCharge.NumberOfPeriods, RatePlanCharge.OverageCalculationOption, RatePlanCharge.UOM, RatePlanCharge.BillCycleDay, ProductRatePlanCharge.SmoothingModel from RatePlanChargeTier where RatePlanCharge.ChargeType = 'usage' and ProductRatePlanCharge.SmoothingModel ='RollingWindow' and RatePlanChargeTier.Tier = 1"
   ratePlanChargeTierZipbody = get_export_zip(ratePlanChargeTierQuery)
   
   puts '===> Construct rateplancharge map with given export data'
@@ -352,58 +387,110 @@ post "/" do
     ##usageCycle.each do |x| ; puts x.inspect ; end;nil
     usageCycle.reverse! 
     rateplancharge.push([usageCycle.first['running_usage'] ,usageCycle.first['total_allowed'], usageCycle  ])
+    ratePlanChargeHash[accountNumber][rateplanChargeId] = ratePlanChargeHash[accountNumber][rateplanChargeId].push([usageCycle.first['running_usage'] ,usageCycle.first['total_allowed'], usageCycle  ])
   end
+
+  #######################################################################################################################################################
+  ############################################################# END of Figuring out rolling window ######################################################
+  #######################################################################################################################################################
+
+
+  #######################################################################################################################################################
+  #################################################### START of invoice item update & invoice regerate & invoice post of  ###############################
+  #######################################################################################################################################################
 
 
   #############################################
   #### Datasource on invoice item to update ### 
   #############################################
+
   puts '===> Get data source export of invoice items'
-  invoiceItemQuery = "select InvoiceItem.ChargeAmount, InvoiceItem.Id, InvoiceItem.Quantity, InvoiceItem.ServiceEndDate, InvoiceItem.ServiceStartDate, InvoiceItem.SubscriptionId, InvoiceItem.TotalAvailUnits__c, InvoiceItem.TotalUsedUnits__c, InvoiceItem.UOM, InvoiceItem.UnitPrice, Invoice.Id, Invoice.Status, ProductRatePlanCharge.SmoothingModel, RatePlanCharge.ChargeType from InvoiceItem where (((Invoice.Status like 'Draft' and InvoiceItem.ProcessingType = 'Charge') and RatePlanCharge.ChargeType = 'usage') and ProductRatePlanCharge.SmoothingModel = 'RollingWindow')"  
+  invoiceItemQuery = "select InvoiceItem.ChargeAmount, InvoiceItem.Id, RatePlanCharge.Id, Subscription.Id, Subscription.Status, InvoiceItem.Quantity, InvoiceItem.ServiceEndDate, InvoiceItem.ServiceStartDate, InvoiceItem.SubscriptionId, InvoiceItem.TotalAvailUnits__c, InvoiceItem.TotalUsedUnits__c, InvoiceItem.UOM, InvoiceItem.UnitPrice, Invoice.Id, Invoice.Status, Invoice.TargetDate, ProductRatePlanCharge.SmoothingModel, RatePlanCharge.ChargeType from InvoiceItem where (((Invoice.Status like 'Draft' and InvoiceItem.ProcessingType = 'Charge')  ) and Invoice.TargetDate = '#{ @BillRunTargetDate }')"   if @BillRunTargetDate != nil
+  invoiceItemQuery = "select InvoiceItem.ChargeAmount, InvoiceItem.Id, RatePlanCharge.Id, Subscription.Id, Subscription.Status, InvoiceItem.Quantity, InvoiceItem.ServiceEndDate, InvoiceItem.ServiceStartDate, InvoiceItem.SubscriptionId, InvoiceItem.TotalAvailUnits__c, InvoiceItem.TotalUsedUnits__c, InvoiceItem.UOM, InvoiceItem.UnitPrice, Invoice.Id, Invoice.Status, Invoice.TargetDate, ProductRatePlanCharge.SmoothingModel, RatePlanCharge.ChargeType from InvoiceItem where (((Invoice.Status like 'Draft' and InvoiceItem.ProcessingType = 'Charge') and  RatePlanCharge.ChargeType = 'Usage') and ProductRatePlanCharge.SmoothingModel = 'RollingWindow')"   if @BillRunTargetDate == nil
   invoiceitemzipbody = get_export_zip(invoiceItemQuery)
 
   puts '===> Construct invvoice item map given export data'
-  invoiceItemsHash = Hash.new()
   invoiceItems = []
   invoiceItemsKeys = []
+  invoiceHash =  Hash.new()
+  invoices = []
   Zip::Archive.open_buffer(invoiceitemzipbody) do |ar|
      ar.fopen(0) do |zf|
         open(zf.name, 'wb') do |f|
           CSV.parse(zf.read) do |row|
             if invoiceItemsKeys == []
-              invoiceItemsKeys.push(*row)
+              invoiceItemsKeys.push(*row.push('calculation_info'))
             else
-              invoiceItems.push(row)
+
+              accountNumber = subscriptionAccountHash[row[invoiceItemsKeys.index("Subscription.Id")]]
+              invoice_id = row[invoiceItemsKeys.index("Invoice.Id")]
+              invoiceItemId = row[invoiceItemsKeys.index("InvoiceItem.Id")]
+
+              invoiceHash[accountNumber] = Hash.new() if invoiceHash[accountNumber] == nil
+              invoiceHash[accountNumber][invoice_id] = Hash.new() if invoiceHash[accountNumber][invoice_id] == nil
+             
+              ##We will use same map to store the invoice items  and upadate the custome fields based accordingly based on charge type
+              if row[invoiceItemsKeys.index("ProductRatePlanCharge.SmoothingModel")] == "RollingWindow" && row[invoiceItemsKeys.index("RatePlanCharge.ChargeType")] == "Usage"
+                rpcid = row[invoiceItemsKeys.index("RatePlanCharge.Id")] 
+                data = ratePlanChargeHash[accountNumber][rpcid].reverse[0]
+
+                row[invoiceItemsKeys.index("InvoiceItem.TotalAvailUnits__c")] =  data[0]
+                row[invoiceItemsKeys.index("InvoiceItem.TotalUsedUnits__c")] = data[1]
+                row[invoiceItemsKeys.index("calculation_info")] = data[2]
+                invoiceHash[accountNumber][invoice_id][invoiceItemId] = row         
+
+                invoiceItems.push(Hash['Invoice.Id', invoice_id ,'InvoiceItem.Id', invoiceItemId, 'InvoiceItem.TotalAvailUnits__c', data[0].round(2), 'InvoiceItem.TotalUsedUnits__c', data[1].round(2), 'calculation_info',  data[2]])
+              else
+                invoiceItems.push(Hash['Invoice.Id', invoice_id ,'InvoiceItem.Id', invoiceItemId, 'InvoiceItem.TotalAvailUnits__c', '', 'InvoiceItem.TotalUsedUnits__c', '', 'calculation_info', '' ]) if @BillRunTargetDate != nil
+              end
             end
           end
         end
      end
   end
 
-
-
-
-
-  puts '===> Update RatePlanCharge custom fields for running usage and total allowable usage'
+  puts '===> Update invoiceItems and custom custom fields for running usage and total allowable usage or make them blank'
+  time = Time.now.to_i.to_s
   APP_ROOT = File.dirname(__FILE__)
-  file_name = 'output-' + Time.now.to_i.to_s + '.csv'
+  file_name = 'output-invoiceitem-update-' + time + '.csv'
   output_file = File.join(APP_ROOT, file_name ) 
 
+  success_invoices =[]
+  failure_invoices = []
   CSV.open(output_file, "w") do |csv|
-    csv << ['SubscriptionId','RatePaneChargeId', 'Success', 'Message', 'Debug']
-    ratePlanCharges.each_slice(50) do | batch |
-      response = update_batch(batch).xpath('//ns1:result', 'ns1' =>'http://api.zuora.com/')
+    csv << ['Id','TotalAvailUnits__c', 'TotalAvailUnits__c', 'Success', 'Message', 'Debug', 'InvoiceId']
+    invoiceItems.each_slice(50) do | batch |
+      response = update_invoice_items(batch).xpath('//ns1:result', 'ns1' =>'http://api.zuora.com/')
       response.each_with_index do |call, i|
         status = call.xpath('./ns1:Success', 'ns1' =>'http://api.zuora.com/').text
-        #id_recieved =  call.xpath('./ns1:Id', 'ns1' =>'http://api.zuora.com/').text
-        message = status == 'false' ? call.xpath('./*/ns1:Code', 'ns1' =>'http://api.zuora.com/').text + ': ' + call.xpath('./*/ns1:Message', 'ns1' =>'http://api.zuora.com/').text : nil
-        id_sent = batch[i][@ratePlanChargeKeys.index("RatePlanCharge.Id")]
-        sub_id = batch[i][@ratePlanChargeKeys.index("Subscription.Id")]
-        debug =  batch[i].last[2]  
-        csv << [sub_id, id_sent, status, message, debug] 
+        invoices.push(id) if status == 'false' 
+        id =  call.xpath('./ns1:Id', 'ns1' =>'http://api.zuora.com/').text
+        message = status == 'false' ? call.xpath('./*/ns1:Code', 'ns1' =>'http://api.zuora.com/').text + ': ' + call.xpath('./*/ns1:Message', 'ns1' =>'http://api.zuora.com/').text : nil 
+        invoice_id = batch[i]['Invoice.Id']
+        #If success, push to list for update
+        success_invoices.push(invoice_id) if status == 'true' 
+        failure_invoices.push(invoice_id) if status == 'false' 
+        csv << [id, batch[i]['InvoiceItem.TotalAvailUnits__c'], batch[i]['InvoiceItem.TotalUsedUnits__c'], status, message, batch[i]['calculation_info'], invoice_id] 
       end  
     end
   end
+
+  if failure_invoices.size >0
+    Pony.mail( :to => @username, :from => 'Movable_Ink_Invoice_Update_Post', :subject => 'An error occured with operation ', :body => "Job at time #{time}")
+  end
+
+  ##Regenerate invoice. 
+  success_invoices.uniq.each_slice(50) do | batch |
+    regenerate_invoices(batch)
+  end
+
+  success_invoices.uniq.each_slice(50) do | batch |
+    post_invoices(batch)
+  end
+
+  #######################################################################################################################################################
+  #################################################### END of invoice item update & invoice regerate & invoice post of  #################################
+  #######################################################################################################################################################
 
 
   puts '=> Finished '
