@@ -161,6 +161,33 @@ get "/download/:file" do
   send_file('' + params[:file] , type: "application/csv", :filename => params[:file])
 end  
     
+
+get "/callout" do 
+    # request.body              # request body sent by the client (see below)
+    # request.scheme            # "http"
+    # request.script_name       # "/example"
+    # request.path_info         # "/foo"
+    # request.port              # 80
+    # request.request_method    # "GET"
+    # request.query_string      # ""
+    # request.content_length    # length of request.body
+    # request.media_type        # media type of request.body
+    # request.host              # "example.com"
+    # request.get?              # true (similar methods for other verbs)
+    # request.form_data?        # false
+    # request["SOME_HEADER"]    # value of SOME_HEADER header
+    # request.referer           # the referer of the client or '/'
+    # request.user_agent        # user agent (used by :agent condition)
+    # request.cookies           # hash of browser cookies
+    # request.xhr?              # is this an ajax request?
+    # request.url               # "http://example.com/example/foo"
+    # request.path              # "/example/foo"
+    # request.ip                # client IP address
+    # request.secure?           # false
+    return  request.inspect
+    #return request.env 
+end  
+
 # Handle POST-request 
 post "/" do 
   puts '=> Start processing'
@@ -298,8 +325,9 @@ post "/" do
 
     ##Build Usage History
     cycles = processedThroughDate == false ? 0 : ((processedThroughDate.year * 12 + processedThroughDate.month) - (effectiveStartDate.year * 12 + effectiveStartDate.month))
-
     usageCycle = []
+    cycles = cycles-1 if cycles !=0
+
     (0..cycles).each do |period|
       case billing_period
       when "Month"
