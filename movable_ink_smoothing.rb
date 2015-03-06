@@ -184,6 +184,7 @@ get "/callout" do
     # request.path              # "/example/foo"
     # request.ip                # client IP address
     # request.secure?           # false
+    puts request.inspect
     return  request.inspect
     #return request.env 
 end  
