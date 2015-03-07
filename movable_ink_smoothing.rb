@@ -164,7 +164,6 @@ def post_invoices(batch)
       xml['SOAP-ENV'].Body do
         xml['ns1'].update do
           batch.each do |item|
-            puts item
             xml['ns1'].zObjects('xsi:type' => "ns2:Invoice") do
               xml['ns2'].Id item 
               xml['ns2'].Status 'Posted'
@@ -200,15 +199,14 @@ get "/" do
 end   
 
 get "/download/:file" do 
-  protected!
   send_file('' + params[:file] , type: "application/csv", :filename => params[:file])
 end  
     
 
 # Handle POST-request 
-post "/" do 
+get "/callout" do 
   puts '=> Start processing'
-  puts params[:BillRunTargetDate]
+  puts '=> Manual Run ' if params[:BillRunTargetDate].blank?
   @BillRunTargetDate = params[:BillRunTargetDate].blank? ? nil : params[:BillRunTargetDate]
 
   #######################################################################################################################################################
@@ -494,9 +492,9 @@ post "/" do
 
 
   puts '=> Finished '
-  File.delete('Subscription.csv'); File.delete('Usage.csv') ; File.delete('RatePlanChargeTier.csv')
+  File.delete('Subscription.csv'); File.delete('Usage.csv') ; File.delete('RatePlanChargeTier.csv'); File.delete('InvoiceItem.csv')
 
-  @download_last = true
+  #@download_last = true
   erb :index    
 end 
 
