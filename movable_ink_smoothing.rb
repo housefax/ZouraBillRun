@@ -178,9 +178,9 @@ def post_invoices(batch)
   output_xml = Nokogiri::XML(response_query.body)
 end
 
-use Rack::Auth::Basic, "Restricted Area" do |username, password|
-  username == 'Testing' and password == 'test'
-end
+# use Rack::Auth::Basic, "Restricted Area" do |username, password|
+#   username == 'Testing' and password == 'test'
+# end
 
 before do
   #@api_url =  "https://www.zuora.com/apps/services/a/62.0" 
