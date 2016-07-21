@@ -1,15 +1,12 @@
-<ul>
-  <li>
-    <form action="/callout" id='rolling_window_form' method="get" class="form-horizontal" enctype="multipart/form-data" style='margin-top: -25px;' >
-      <div class='row'>
-        <div class='col-md-8'>
-          <h3 style='margin-top: 5px;'> Usage Rolling Window Update </h3>
-        </div>
-      <div class='col-md-3 col-md-offset-1' style=""> 
-        <input type="hidden" name='type' value='UsageRollingWindow'/>
- 
-        <input type="submit" class="btn btn-mi" id='rolling_window_submit_btn' value='Submit'/>
-      </div>
-    </form>
-  </li>
-</ul>
+<div class='row'>
+  <form action="/callout"  method="post" class="form-horizontal" enctype="multipart/form-data">
+    <div class='col-md-8'>
+      <h3 style='margin-top: 0px;'>Recalculate Usage Tracking</h3>
+      <p> Usage must be populated with charge id inside of Zuora</p>
+    </div>
+  <div class='col-md-3 col-md-offset-1' style="margin-top: 10px;"> 
+    <input type="hidden" name='type' value='UsageRollingWindow'/>
+    <input type="submit" class="btn btn-mi" value='Submit'/>
+  </div>
+  </form>
+</div>

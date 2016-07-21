@@ -1,3 +1,3 @@
 $stdout.sync = true
-require './movable_ink_smoothing'
+require './callout_sinatra'
 run Sinatra::Application

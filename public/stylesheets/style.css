@@ -96,12 +96,12 @@ pre {
 
 .btn-mi{
 	color: white;
-	background: #d8377f;
-	border-color: #d8377f;
+	background: #394c5d;
+	border-color: #394c5d;
 	font-weight: 700;
 }
 .btn-mi:hover {
-	background: #e0629a;
+	background: #4c5d6d;
 	font-weight: 700;
 	color: white;
 }
