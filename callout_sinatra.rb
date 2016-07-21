@@ -162,7 +162,7 @@ post "/callout" do
     puts '===> Get data source export of invoice items'
     
 
-    @BillRunId = '2c92c0f955a0b5b80155a8af44a82f90'
+    #@BillRunId = '2c92c0f955a0b5b80155a8af44a82f90'
 
     invoiceitemzipbody = get_export_zip("select RatePlanCharge.Id, RatePlanCharge.Quantity, RatePlanCharge.Tracking__c, RatePlanCharge.Available__c, ProductRatePlanCharge.SmoothingModel from InvoiceItem where (ProductRatePlanCharge.ChargeType = 'Usage' and Invoice.SourceId = '#{@BillRunId}')" )
 
