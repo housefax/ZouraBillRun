@@ -188,7 +188,7 @@ post "/callout" do
               if ratePlanChargeSmoothingModel == "Rollover"
                 output_xml, input_xml = soap_call() do |xml, args|
                   xml['ns1'].query do |xml|
-                    xml['ns1'].queryString "Select RolloverBalance from RatePlanCharge where Id = '2c92c0f9555cf11d01555eac9d0d75e3'"
+                    xml['ns1'].queryString "Select RolloverBalance from RatePlanCharge where Id = ='" + ratePlanChargeId + "'"
                   end 
                 end
                 rollOverBalance = output_xml.xpath('//ns2:RolloverBalance', 'ns2' =>'http://object.api.zuora.com/').text
