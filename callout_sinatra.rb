@@ -117,9 +117,9 @@ def soap_call(ns1: 'ns1', ns2: 'ns2', **keyword_args)
 end
 
 
-use Rack::Auth::Basic, "Restricted Area" do |username, password|
-  username == 'test@test.com' and password == 'test123'
-end
+#use Rack::Auth::Basic, "Restricted Area" do |username, password|
+#  username == 'test@test.com' and password == 'test123'
+#end
 
 before do
   @api_url  = "https://apisandbox.zuora.com/apps/services/a/62.0" 
